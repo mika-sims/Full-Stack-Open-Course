@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
+import "./index.css";
 import Persons from "./components/Persons";
 import PersonForm from "./components/PersonForm";
 import Filter from "./components/Filter";
 import personService from "./services/persons";
+import Notification from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -12,25 +12,30 @@ const App = () => {
   const [newNumber, setNewNumber] = useState("");
   const [searchPerson, setSearchPerson] = useState("");
   const [showAll, setShowAll] = useState(true);
+  const [messages, setMessages] = useState();
 
   useEffect(() => {
-    personService.getAll().then((initialPersons) => {
-      setPersons(initialPersons);
-    });
+    personService
+      .getAll()
+      .then((initialPersons) => setPersons(initialPersons))
+      .catch((error) => handleMessages(error.message));
   }, []);
+
+  const handleMessages = (message, timeout = 3000) => {
+    setMessages(message);
+    setTimeout(() => {
+      setMessages(null);
+    }, timeout);
+  };
 
   const addPerson = (e) => {
     e.preventDefault();
-
     const personToUpdate = persons.find((person) => person.name === newName);
-    const newPerson = {
-      name: newName,
-      number: newNumber,
-    };
+    const newPerson = { name: newName, number: newNumber };
 
     if (personToUpdate) {
       const result = window.confirm(
-        `${newName} is already added to phonebook, replace the old number with a new one?`
+        `${newName} is already added to the phonebook. Replace the old number with a new one?`
       );
 
       if (result) {
@@ -44,49 +49,52 @@ const App = () => {
     personService
       .create(newPerson)
       .then((updatedPerson) => {
-        setPersons(persons.concat(updatedPerson));
+        setPersons([...persons, updatedPerson]);
         setNewName("");
         setNewNumber("");
+        handleMessages("Person added successfully");
       })
-      .catch((error) => {
-        alert(error.response.data.error);
-      });
+      .catch((error) => handleMessages(error.message));
   };
 
   const updatePerson = (e, personToUpdate, newNumber) => {
+    e.preventDefault();
     const updatedPerson = { ...personToUpdate, number: newNumber };
 
     personService
       .update(personToUpdate.id, updatedPerson)
       .then((returnedPerson) => {
-        setPersons(
-          persons.map((person) =>
+        setPersons((prevPersons) =>
+          prevPersons.map((person) =>
             person.id !== personToUpdate.id ? person : returnedPerson
           )
         );
         setNewName("");
         setNewNumber("");
+        handleMessages("Person updated successfully");
       })
       .catch((error) => {
-        alert(
-          `the person '${personToUpdate.name}' was already deleted from server`
-        );
-        setPersons(persons.filter((p) => p.id !== personToUpdate.id));
+        handleMessages(error.message, 3000);
+        console.log(error);
       });
+    setPersons(persons.filter((p) => p.id !== personToUpdate.id));
   };
 
   const deletePerson = (id) => {
     const person = persons.find((person) => person.id === id);
-    const result = window.confirm(`Delete ${person.name} ?`);
+    const result = window.confirm(`Delete ${person.name}?`);
 
     if (result) {
       personService
         .deletePerson(id)
         .then(() => {
-          setPersons(persons.filter((person) => person.id !== id));
+          setPersons((prevPersons) =>
+            prevPersons.filter((person) => person.id !== id)
+          );
+          handleMessages("Person deleted successfully");
         })
         .catch((error) => {
-          alert(`the person '${person.name}' was already deleted from server`);
+          handleMessages(error.message, 3000);
           setPersons(persons.filter((p) => p.id !== id));
         });
     }
@@ -106,6 +114,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={messages} />
 
       <Filter searchPerson={searchPerson} handleSearch={handleSearch} />
 

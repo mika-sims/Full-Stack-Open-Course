@@ -1,0 +1,15 @@
+.error {
+  color: red;
+  font-size: 18px;
+  margin-bottom: 10px;
+  box-sizing: content-box;
+  max-width: max-content;
+}
+
+.success {
+  color: green;
+  font-size: 18px;
+  margin-bottom: 10px;
+  box-sizing: content-box;
+  max-width: max-content;
+}
